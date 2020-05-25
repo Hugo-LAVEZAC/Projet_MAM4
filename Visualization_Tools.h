@@ -976,12 +976,12 @@ vector<int> adjacent(int x,float anglex, float angley) {
 	int h;
 	int d;
 	int b;
-	int a36 =(int) (360 / anglex);
-	int a35 = (int) (360 / anglex - 1);
-	g = (x % a36 == 0) ? x+a35:x-1 ;
-	d = ((x+1) % a36 == 0) ? x - a35 : x + 1;
-	h = (x < a36) ? ( ( x+(a36/2)>=a36) ? x- (a36 / 2) :x+ (a36 / 2)): x - a36;
-	b = (x > a36*(a36/2-1)) ? ( (x >= a36 * (a36 / 2)) ? x- (a36 / 2) :x+ (a36 / 2)) : x + a36;
+	int a   =(int) (360 / anglex);
+	int y = (int)(180 / angley);
+	g = (x % a == 0) ? x + a - 1 : x-1 ;
+	d = ((x+1) % a == 0) ? x - a + 1 : x + 1;
+	h = (x < a) ? a-x : x - a;
+	b = (x + a > a * y) ? a-(x%a) : x + a;
 	retour.push_back(g);
 	retour.push_back(d);
 	retour.push_back(h);
@@ -1037,11 +1037,12 @@ vector<Point_d> clusterize_sphere(vector<int> red_list , vector<Point_d> pts) {
 			}
 			//visite.insert(visite.end(),cluster.begin(),cluster.end());
 			for (int x = 0; x < cluster.size(); x++) {
-				pt = pt + Vector_3(pts[cluster[x]],Point_d(0,0,0))/cluster.size() ;
+				pt = pt + Vector_3(Point_d(0, 0, 0),pts[cluster[x]])/cluster.size() ;
 			}
 			retour.push_back(pt);
 			
 			cluster.clear();
+			pt = Point_d(0, 0, 0);
 		}
 
 	}
@@ -1141,7 +1142,7 @@ bool save_Gaussian_Sphere(char* filename, std::vector < Point_d >  pt,float angl
 
 				fic <<4<<" "<< gh << " " <<  dh << " " << db << " " << gb <<" "<< std::min((int)(255*n/ntotal),255) <<" "<< std::max(255- (int)(255 * n / ntotal),0) <<" "<<0;
 				fic << std::endl;
-				if ((int)(255 * n / ntotal) > 240) {
+				if ((int)(255 * n / ntotal) > 200) {
 					red_indices.push_back(gh);
 				}
 			}
