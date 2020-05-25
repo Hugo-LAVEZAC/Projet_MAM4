@@ -956,15 +956,98 @@ Polyhedron createCylinder_fine(Point_d p1, Point_d p2, double size)
 
 
 
+vector<int> around_points(Point_d centre, float r, vector<Point_d> pts) {
+	vector<int> indices;
+	float norm;
+	for (int i = 0; i < pts.size(); i++)
+	{
+		norm = sqrt(pow(centre.x() - pts[i].x(), 2) + pow(centre.y() - pts[i].y(), 2) + pow(centre.z() - pts[i].z(), 2));
+		if (norm < r)
+		{
+			indices.push_back(i);
+		}
+	}
+	return indices;
+}
 
+vector<int> adjacent(int x,float anglex, float angley) {
+	vector<int> retour;
+	int g;
+	int h;
+	int d;
+	int b;
+	int a36 =(int) (360 / anglex);
+	int a35 = (int) (360 / anglex - 1);
+	g = (x % a36 == 0) ? x+a35:x-1 ;
+	d = ((x+1) % a36 == 0) ? x - a35 : x + 1;
+	h = (x < a36) ? ( ( x+(a36/2)>=a36) ? x- (a36 / 2) :x+ (a36 / 2)): x - a36;
+	b = (x > a36*(a36/2-1)) ? ( (x >= a36 * (a36 / 2)) ? x- (a36 / 2) :x+ (a36 / 2)) : x + a36;
+	retour.push_back(g);
+	retour.push_back(d);
+	retour.push_back(h);
+	retour.push_back(b);
+	return retour;
+}
 
+vector<Point_d> clusterize_sphere(vector<int> red_list , vector<Point_d> pts) {
+	vector<int> visite;
+	vector<int> avisite;
+	vector<int> adj;
+	vector<int> cluster;
+	Point_d pt(0,0,0);
+	vector<Point_d> retour;
+	std::cout << red_list.size() << '\n';
 
+	for (int i = 0; i < red_list.size(); i++)
+	{
+		if (std::find(visite.begin(), visite.end(), red_list[i]) == visite.end()) {
+			avisite.push_back(red_list[i]);
 
+			for (int j = 0; j < avisite.size(); j=j) {
 
+				adj = adjacent(avisite[0],2,2);
+				
+				for (int k = 0; k < adj.size(); k = k) {//verifier que adjacent soit dans red_list
+					if (std::find(red_list.begin(), red_list.end(), adj[k]) != red_list.end()) {
+						k = k + 1;
+						
+					}
+					else { adj.erase(adj.begin() + k); }
+				}
+				for (int k = 0; k < adj.size(); k = k) {//verifier que adjacent ne soit pas dans avisite
+					if (std::find(avisite.begin(), avisite.end(), adj[k]) == avisite.end()) {
+						k = k + 1;
 
+					}
+					else { adj.erase(adj.begin() + k); }
+				}
+				for (int k = 0; k < adj.size(); k = k) {//verifier que adjacent ne  soit pas  dans visite
+					if (std::find(visite.begin(), visite.end(), adj[k]) == visite.end()) {
+						k = k + 1;
 
+					}
+					else { adj.erase(adj.begin() + k); }
+				}
+				
 
+				avisite.insert(avisite.end(),adj.begin(),adj.end());
+				cluster.push_back(avisite[0]);
+				visite.push_back(avisite[0]);
+				avisite.erase(avisite.begin());
+			}
+			//visite.insert(visite.end(),cluster.begin(),cluster.end());
+			for (int x = 0; x < cluster.size(); x++) {
+				pt = pt + Vector_3(pts[cluster[x]],Point_d(0,0,0))/cluster.size() ;
+			}
+			retour.push_back(pt);
+			
+			cluster.clear();
+		}
 
+	}
+	std::cout << retour.size();
+	return retour;
+}
 
 
 bool save_listpoint(std::vector<Point_d> pt, char* filename) {
@@ -992,10 +1075,89 @@ bool save_listpoint(std::vector<Point_d> pt, char* filename) {
 	//vertex list
 
 	for (int i = 0; i < pt.size(); i++) {
-			fic << pt[i].x() << " " << pt[i].y() << " " << pt[i].z() << " " << 90 << " " << 255 << " " << 40 << std::endl;
+		fic << pt[i].x() << " " << pt[i].y() << " " << pt[i].z() << " " << 90 << " " << 255 << " " << 40 << std::endl;
 	}
 	return true;
 }
+
+bool save_Gaussian_Sphere(char* filename, std::vector < Point_d >  pt,float anglex,float angley)
+{
+
+	std::cout << "Saving planes to " << filename << std::endl;
+	OFSTREAM_TEXTE(fic, filename);
+
+
+	//header
+	fic << "ply" << std::endl;
+	fic << "format ascii 1.0" << std::endl;
+	fic << "comment author: F. Lafarge" << std::endl;
+	fic << "element vertex " << (int)(180 / angley)* (int)(360 / anglex) << std::endl;
+	fic << "property float x" << std::endl;
+	fic << "property float y" << std::endl;
+	fic << "property float z" << std::endl;
+	fic << "element face " << (int)(180 / angley) * (int)(360 / anglex) << std::endl;
+	fic << "property list uchar int vertex_index" << std::endl;
+	fic << "property uchar red" << std::endl;
+	fic << "property uchar green" << std::endl;
+	fic << "property uchar blue" << std::endl;
+	fic << "end_header" << std::endl;
+
+	//vertex list
+
+	vector<Point_d> pts;
+	for (int i = 0; i <180; i=i+angley) {
+		float phi = i - 90;
+		for (int k = 0; k < 360; k=k+anglex) {
+			float teta = k - 180;
+			float x = sin(teta * M_PI / 180) * cos(phi * M_PI / 180) ;
+			float y = sin(teta * M_PI / 180) * sin(phi * M_PI / 180) ;
+			float z = cos(teta * M_PI / 180) ;
+			pts.push_back(Point_d(x, y, z));
+			fic << x << " "<<y << " "<<z;
+
+			fic << std::endl;
+		}
+	}
+
+	Point_d milieu;
+	vector<int> red_indices;
+	for (int i = 1; i <= (int)(180/angley); i = i + 1) {
+			for (int k = 0; k < (int)(360/anglex); k = k + 1) {
+				int gh = (i-1) * (int)(360 / anglex) + k; 
+				int dh = (i-1) * (int)(360 / anglex) + k + 1;
+				if (dh >= i * (int)(360 / anglex)) { dh = (i-1)* (int)(360 / anglex); }
+				int gb = i * (int)(360 / anglex) + k ;
+				int db = i * (int)(360 / anglex) + k + 1;
+				if (db >= (i + 1) * (int)(360 / anglex)) { db = i* (int)(360 / anglex); }
+
+				if (db >= (int)(180 / angley)* (int)(360 / anglex)) { db =  (int)(360 / anglex)-k-1; }
+				if (gb >= (int)(180 / angley)* (int)(360 / anglex)) { gb =  (int)(360 / anglex)-k; }
+
+
+				milieu = Point_d(0,0,0) + Vector_3(Point_d(0,0,0) , pts[gh] + Vector_3(Point_d(0,0,0),pts[db])) / 2;
+				float rayon = sqrt(pow(Vector_3(pts[gh] , pts[db]).x() , 2) + pow(Vector_3(pts[gh] , pts[db]).y() , 2) + pow(Vector_3(pts[gh] , pts[db]).z() , 2)) / 2;
+				float n = around_points(milieu, rayon*1.5, pt).size();
+				float ntotal = pts.size()/5;
+
+				fic <<4<<" "<< gh << " " <<  dh << " " << db << " " << gb <<" "<< std::min((int)(255*n/ntotal),255) <<" "<< std::max(255- (int)(255 * n / ntotal),0) <<" "<<0;
+				fic << std::endl;
+				if ((int)(255 * n / ntotal) > 240) {
+					red_indices.push_back(gh);
+				}
+			}
+	}
+
+	vector<Point_d> mainplanes = clusterize_sphere(red_indices, pts);
+
+	save_listpoint(mainplanes, "plans_principaux.ply");
+
+	return true;
+}
+
+
+
+
+
 
 
 

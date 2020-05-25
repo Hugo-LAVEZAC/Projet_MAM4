@@ -71,6 +71,7 @@ while (redo) {
 	if (C.plane_point_index.size() > 0) {
 		save_envelops(C, name1);
 		save_listpoint(sphere, "mes-points.ply");
+		save_Gaussian_Sphere("sphere-discrete.ply", sphere , 2, 2);
 	}
 	
         std::cout<<endl<<"Relaunch ? (yes=1, no=0): ";
